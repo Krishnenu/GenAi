@@ -1,0 +1,17 @@
+Google LLC is an American multinational technology company founded in 1998 by Larry Page and Sergey Brin.
+
+Google's primary business is internet-related services and products, including:
+- Search Engine
+- Google Cloud Platform (GCP)
+- Android Operating System
+- YouTube
+- Google Maps
+- Gmail
+
+Google's headquarters is located in Mountain View, California, United States.
+
+Google Cloud provides services such as computing, storage, machine learning, artificial intelligence, and data analytics.
+
+The parent company of Google is Alphabet Inc.
+
+Google has invested heavily in artificial intelligence and developed products such as Gemini, TensorFlow, and Vertex AI.
