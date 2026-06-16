@@ -51,8 +51,8 @@ def load_documents(data_path: str = "docs"):
 # -------------------converting to chunks of data after reading --------------------------
 def split_documents(documents):
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=50,
-        chunk_overlap=10
+        chunk_size=500,
+        chunk_overlap=100
     )
     chunks = splitter.split_documents(documents)
 
