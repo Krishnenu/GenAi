@@ -1,4 +1,5 @@
 import os
+from langsmith import traceable
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 # from langchain_openai import OpenAIEmbeddings
@@ -8,10 +9,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+print(os.getenv("LANGSMITH_API_KEY"))
+print(os.getenv("LANGSMITH_PROJECT"))
 
 # ----------------------------------Reading the data and verifying after reading -------------------------------------
+
+@traceable
 def load_documents(data_path: str = "docs"):
     print(f"loading documents from{data_path}...")
+
     """
     Load all .txt files from the data directory.
 
@@ -21,8 +27,11 @@ def load_documents(data_path: str = "docs"):
     Returns:
         list[Document]: Loaded LangChain documents
     """
+
     if not os.path.exists(data_path):
-        raise FileNotFoundError(f" The Directory {data_path} does not found...")
+        raise FileNotFoundError(
+            f" The Directory {data_path} does not found..."
+        )
 
     loader = DirectoryLoader(
         path=data_path,
@@ -35,7 +44,9 @@ def load_documents(data_path: str = "docs"):
     print(f"Loaded {len(documents)} document(s)")
 
     if len(documents) == 0:
-        raise FileNotFoundError(f"No .txt file present...")
+        raise FileNotFoundError(
+            f"No .txt file present..."
+        )
 
     # check the output
     # for i, doc in enumerate(documents[:2]):  # Show first 2 documents
@@ -49,11 +60,15 @@ def load_documents(data_path: str = "docs"):
 
 
 # -------------------converting to chunks of data after reading --------------------------
+
+@traceable
 def split_documents(documents):
+
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
         chunk_overlap=100
     )
+
     chunks = splitter.split_documents(documents)
 
     # print(f"Created {len(chunks)} chunks")
@@ -62,10 +77,11 @@ def split_documents(documents):
     #     print(f"Source: {chunk.metadata['source']}")
     #     print(f"Length: {len(chunk.page_content)}")
     #     print(chunk.page_content[:150])
+
     return chunks
 
-# Embedding of chunks
 
+# Embedding of chunks
 
 # updating embedding as this is chargeble
 # def create_embeddings():
@@ -76,29 +92,42 @@ def split_documents(documents):
 #     return embeddings
 
 
+@traceable
 def create_embeddings():
+
     print("Creating HuggingFace embedding model...")
+
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
+
     return embeddings
 
 
-
 # Storing in DB
-print("API Key Found:", bool(os.getenv("OPENAI_API_KEY")))
 
+print(
+    "API Key Found:",
+    bool(os.getenv("OPENAI_API_KEY"))
+)
+
+
+@traceable
 def create_vector_store(chunks, embeddings):
+
     print("Creating vector store...")
 
     # Generate embedding for first chunk
     # sample_vector = embeddings.embed_query(
     #     chunks[0].page_content
     # )
+    #
     # print("\nFirst Chunk:")
     # print(chunks[0].page_content[:100])
+    #
     # print("\nEmbedding Dimension:")
     # print(len(sample_vector))
+    #
     # print("\nFirst 10 Vector Values:")
     # print(sample_vector[:10])
 
@@ -107,36 +136,47 @@ def create_vector_store(chunks, embeddings):
         embedding=embeddings,
         persist_directory="./chroma_db"
     )
-    print(f"Stored {len(chunks)} chunks in ChromaDB")
+
+    print(
+        f"Stored {len(chunks)} chunks in ChromaDB"
+    )
+
+    print(
+        f"Total vectors stored: "
+        f"{vector_store._collection.count()}"
+    )
 
     return vector_store
 
 
 # Main Method calling
 
+@traceable(name="ingestion_pipeline")
 def main():
-    documents = load_documents(data_path="docs")
-    chunks = split_documents(documents)
+
+    documents = load_documents(
+        data_path="docs"
+    )
+
+    chunks = split_documents(
+        documents
+    )
+
     embeddings = create_embeddings()
 
-    print(f"embedding data {embeddings}")
+    print(
+        f"embedding data {embeddings}"
+    )
 
     vector_store = create_vector_store(
         chunks,
         embeddings
     )
 
-    print("Ingestion completed successfully!")
+    print(
+        "Ingestion completed successfully!"
+    )
 
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
