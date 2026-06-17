@@ -1,55 +1,102 @@
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Vector DB Location
-persistent_directory = "./chroma_db"
+# ---------------------------------------
+# Vector DB
+# ---------------------------------------
+PERSIST_DIRECTORY = "./chroma_db"
 
-# Load embeddings and vector store
 embedding_model = HuggingFaceEmbeddings(
     model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 db = Chroma(
-    persist_directory=persistent_directory,
-    embedding_function=embedding_model,
-    collection_metadata={"hnsw:space": "cosine"}
+    persist_directory=PERSIST_DIRECTORY,
+    embedding_function=embedding_model
 )
 
+# ---------------------------------------
+# Retriever
+# ---------------------------------------
+retriever = db.as_retriever(
+    search_kwargs={"k": 3}
+)
 
+# ---------------------------------------
+# LLM (FREE - Local)
+# ---------------------------------------
+llm = ChatOllama(
+    model="llama3:latest",      # or qwen3:8b
+    temperature=0
+)
+
+# ---------------------------------------
+# Prompt Template
+# ---------------------------------------
+prompt = ChatPromptTemplate.from_template(
+    """
+You are a helpful AI assistant.
+
+Answer ONLY from the provided context.
+
+If the answer is not found in the context, say:
+"I could not find that information in the documents."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+"""
+)
+
+# ---------------------------------------
+# Main Loop
+# ---------------------------------------
 while True:
+
     query = input("\nAsk a question: ").strip()
-
-    # retriever = db.as_retriever(
-    #     search_type="similarity_score_threshold",
-    #     search_kwargs={
-    #         "k": 5,
-    #         "score_threshold": 0.3
-    #     }
-    # )
-
-    retriever = db.as_retriever(
-        search_kwargs={"k": 3}
-    )
 
     if query.lower() in ["exit", "quit"]:
         print("\nGoodbye!")
         break
 
-    relevant_docs = retriever.invoke(query)
+    print("\nSearching documents...")
 
-    print(f"\nUser Query: {query}")
+    relevant_docs = retriever.invoke(query)
 
     if not relevant_docs:
         print("\nNo relevant documents found.")
         continue
 
-    print("\n--- Retrieved Context ---")
+    # Combine retrieved chunks
+    context = "\n\n".join(
+        [doc.page_content for doc in relevant_docs]
+    )
 
-    for i, doc in enumerate(relevant_docs, 1):
-        print(f"\nDocument {i}")
-        print(f"Source: {doc.metadata['source']}")
-        print(doc.page_content)
-        print("-" * 50)
+    # print("\nRetrieved Chunks:")
+    # print("-" * 50)
+
+    # for i, doc in enumerate(relevant_docs, start=1):
+    #     print(f"\nChunk {i}")
+    #     print(doc.page_content[:200])
+    #     print("-" * 50)
+
+    # Create chain
+    chain = prompt | llm
+
+    # Generate answer
+    response = chain.invoke({
+        "context": context,
+        "question": query
+    })
+
+    print("\nAnswer:")
+    print(response.content)
